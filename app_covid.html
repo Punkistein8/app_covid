@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COVID-19 Comparison</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {packages:['corechart', 'bar']});
+        google.charts.setOnLoadCallback(loadData);
+
+        let globalData = [];
+
+        function loadData() {
+            const apiUrl = "https://disease.sh/v3/covid-19/countries";
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    globalData = data;
+                    populateCountrySelectors(data);
+                });
+        }
+
+        function populateCountrySelectors(data) {
+            const selectors = document.querySelectorAll('.country-selector');
+            selectors.forEach(selector => {
+                data.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.country;
+                    option.text = country.country;
+                    selector.add(option);
+                });
+            });
+        }
+
+        function dibujarGraficas() {
+            const selectedCountries = [
+                document.getElementById('country1').value,
+                document.getElementById('country2').value,
+                document.getElementById('country3').value,
+                document.getElementById('country4').value
+            ];
+
+            const countryData = selectedCountries.map(countryName => globalData.find(country => country.country === countryName));
+
+            // Gráfica comparativa de casos totales
+            var datosCasosTotales = google.visualization.arrayToDataTable([
+              ['País', 'Casos Totales', 'Muertes Totales', 'Recuperados', 'Casos Activos'],
+              ...countryData.map(country => [
+                country.country, country.cases, country.deaths, country.recovered, country.active
+              ])
+            ]);
+
+            var opcionesCasosTotales = {
+              title: 'Comparación de Casos Totales de COVID-19',
+              chartArea: {width: '50%'},
+              hAxis: {
+                title: 'Número de Casos',
+                minValue: 0
+              },
+              vAxis: {
+                title: 'País'
+              }
+            };
+
+            var graficoCasosTotales = new google.visualization.BarChart(document.getElementById('grafica-1'));
+            graficoCasosTotales.draw(datosCasosTotales, opcionesCasosTotales);
+
+            // Tabla de casos totales
+            var tablaCasosTotales = `
+              <table class="table table-bordered" style="width: 100%;">
+                <tr>
+                  <th>País</th>
+                  <th>Bandera</th>
+                  <th>Casos Totales</th>
+                  <th>Muertes Totales</th>
+                  <th>Recuperados</th>
+                  <th>Casos Activos</th>
+                </tr>
+                ${countryData.map(country => `
+                  <tr>
+                    <td>${country.country}</td>
+                    <td><img src="${country.countryInfo.flag}" width="32" height="24"></td>
+                    <td>${country.cases}</td>
+                    <td>${country.deaths}</td>
+                    <td>${country.recovered}</td>
+                    <td>${country.active}</td>
+                  </tr>
+                `).join('')}
+              </table>
+            `;
+            document.getElementById('tabla-1').innerHTML = tablaCasosTotales;
+
+            // Gráfica comparativa de muertes totales
+            var datosMuertesTotales = google.visualization.arrayToDataTable([
+              ['País', 'Muertes Totales', 'Muertes Hoy'],
+              ...countryData.map(country => [
+                country.country, country.deaths, country.todayDeaths
+              ])
+            ]);
+
+            var opcionesMuertesTotales = {
+              title: 'Comparación de Muertes Totales de COVID-19',
+              chartArea: {width: '50%'},
+              hAxis: {
+                title: 'Número de Muertes',
+                minValue: 0
+              },
+              vAxis: {
+                title: 'País'
+              }
+            };
+
+            var graficoMuertesTotales = new google.visualization.ColumnChart(document.getElementById('grafica-2'));
+            graficoMuertesTotales.draw(datosMuertesTotales, opcionesMuertesTotales);
+
+            // Tabla de muertes totales
+            var tablaMuertesTotales = `
+              <table class="table table-bordered" style="width: 100%;">
+                <tr>
+                  <th>País</th>
+                  <th>Bandera</th>
+                  <th>Muertes Totales</th>
+                  <th>Muertes Hoy</th>
+                </tr>
+                ${countryData.map(country => `
+                  <tr>
+                    <td>${country.country}</td>
+                    <td><img src="${country.countryInfo.flag}" width="32" height="24"></td>
+                    <td>${country.deaths}</td>
+                    <td>${country.todayDeaths}</td>
+                  </tr>
+                `).join('')}
+              </table>
+            `;
+            document.getElementById('tabla-2').innerHTML = tablaMuertesTotales;
+
+            // Gráfica comparativa de casos activos
+            var datosCasosActivos = google.visualization.arrayToDataTable([
+              ['País', 'Casos Activos'],
+              ...countryData.map(country => [
+                country.country, country.active
+              ])
+            ]);
+
+            var opcionesCasosActivos = {
+              title: 'Comparación de Casos Activos de COVID-19',
+              chartArea: {width: '50%'},
+              hAxis: {
+                title: 'Número de Casos Activos',
+                minValue: 0
+              },
+              vAxis: {
+                title: 'País'
+              }
+            };
+
+            var graficoCasosActivos = new google.visualization.BarChart(document.getElementById('grafica-3'));
+            graficoCasosActivos.draw(datosCasosActivos, opcionesCasosActivos);
+
+            // Tabla de casos activos
+            var tablaCasosActivos = `
+              <table class="table table-bordered" style="width: 100%;">
+                <tr>
+                  <th>País</th>
+                  <th>Bandera</th>
+                  <th>Casos Activos</th>
+                </tr>
+                ${countryData.map(country => `
+                  <tr>
+                    <td>${country.country}</td>
+                    <td><img src="${country.countryInfo.flag}" width="32" height="24"></td>
+                    <td>${country.active}</td>
+                  </tr>
+                `).join('')}
+              </table>
+            `;
+            document.getElementById('tabla-3').innerHTML = tablaCasosActivos;
+
+            // Gráfica comparativa de pruebas realizadas
+            var datosPruebasRealizadas = google.visualization.arrayToDataTable([
+              ['País', 'Pruebas Realizadas'],
+              ...countryData.map(country => [
+                country.country, country.tests
+              ])
+            ]);
+
+            var opcionesPruebasRealizadas = {
+              title: 'Comparación de Pruebas Realizadas de COVID-19',
+              chartArea: {width: '50%'},
+              hAxis: {
+                title: 'Número de Pruebas',
+                minValue: 0
+              },
+              vAxis: {
+                title: 'País'
+              }
+            };
+
+            var graficoPruebasRealizadas = new google.visualization.LineChart(document.getElementById('grafica-4'));
+            graficoPruebasRealizadas.draw(datosPruebasRealizadas, opcionesPruebasRealizadas);
+
+            // Tabla de pruebas realizadas
+            var tablaPruebasRealizadas = `
+              <table class="table table-bordered" style="width: 100%;">
+                <tr>
+                  <th>País</th>
+                  <th>Bandera</th>
+                  <th>Pruebas Realizadas</th>
+                </tr>
+                ${countryData.map(country => `
+                  <tr>
+                    <td>${country.country}</td>
+                    <td><img src="${country.countryInfo.flag}" width="32" height="24"></td>
+                    <td>${country.tests}</td>
+                  </tr>
+                `).join('')}
+              </table>
+            `;
+            document.getElementById('tabla-4').innerHTML = tablaPruebasRealizadas;
+
+            // Gráfica comparativa de casos y muertes por millón
+            var datosPorMillon = google.visualization.arrayToDataTable([
+              ['País', 'Casos por Millón', 'Muertes por Millón'],
+              ...countryData.map(country => [
+                country.country, country.casesPerOneMillion, country.deathsPerOneMillion
+              ])
+            ]);
+
+            var opcionesPorMillon = {
+              title: 'Comparación de Casos y Muertes por Millón de Habitantes',
+              chartArea: {width: '50%'},
+              hAxis: {
+                title: 'Número por Millón',
+                minValue: 0
+              },
+              vAxis: {
+                title: 'País'
+              }
+            };
+
+            var graficoPorMillon = new google.visualization.ColumnChart(document.getElementById('grafica-5'));
+            graficoPorMillon.draw(datosPorMillon, opcionesPorMillon);
+
+            // Tabla de casos y muertes por millón
+            var tablaPorMillon = `
+              <table class="table table-bordered" style="width: 100%;">
+                <tr>
+                  <th>País</th>
+                  <th>Bandera</th>
+                  <th>Casos por Millón</th>
+                  <th>Muertes por Millón</th>
+                </tr>
+                ${countryData.map(country => `
+                  <tr>
+                    <td>${country.country}</td>
+                    <td><img src="${country.countryInfo.flag}" width="32" height="24"></td>
+                    <td>${country.casesPerOneMillion}</td>
+                    <td>${country.deathsPerOneMillion}</td>
+                  </tr>
+                `).join('')}
+              </table>
+            `;
+            document.getElementById('tabla-5').innerHTML = tablaPorMillon;
+
+            // Gráfica de pastel de distribución de casos
+            var datosPastelCasos = google.visualization.arrayToDataTable([
+              ['País', 'Casos Totales'],
+              ...countryData.map(country => [
+                country.country, country.cases
+              ])
+            ]);
+
+            var opcionesPastelCasos = {
+              title: 'Distribución de Casos Totales de COVID-19'
+            };
+
+            var graficoPastelCasos = new google.visualization.PieChart(document.getElementById('grafica-6'));
+            graficoPastelCasos.draw(datosPastelCasos, opcionesPastelCasos);
+
+            // Tabla de distribución de casos
+            var tablaPastelCasos = `
+              <table class="table table-bordered" style="width: 100%;">
+                <tr>
+                  <th>País</th>
+                  <th>Bandera</th>
+                  <th>Casos Totales</th>
+                </tr>
+                ${countryData.map(country => `
+                  <tr>
+                    <td>${country.country}</td>
+                    <td><img src="${country.countryInfo.flag}" width="32" height="24"></td>
+                    <td>${country.cases}</td>
+                  </tr>
+                `).join('')}
+              </table>
+            `;
+            document.getElementById('tabla-6').innerHTML = tablaPastelCasos;
+        }
+    </script>
+</head>
+<body>
+  <div class="container mt-5">
+    <div class="row">
+      <div class="col-md-12">
+        <h1>Comparación de COVID-19 entre Países</h1>
+      </div>
+    </div>
+    
+    <br>
+
+    <div class="row">
+      <div class="col-md-6">
+        <label for="country1">País 1:</label>
+        <select id="country1" class="country-selector form-control js-select2"></select>
+      </div>
+
+      <div class="col-md-6">
+        <label for="country2">País 2:</label>
+        <select id="country2" class="country-selector form-control js-select2"></select>
+      </div>
+
+      <div class="col-md-6">
+        <label for="country3">País 3:</label>
+        <select id="country3" class="country-selector form-control js-select2"></select>
+      </div>
+
+      <div class="col-md-6">
+        <label for="country4">País 4:</label>
+        <select id="country4" class="country-selector form-control js-select2"></select>
+      </div>
+      
+      <div class="col-md-12">
+        <br>
+        <button class="btn btn-primary" style="float: right;" onclick="dibujarGraficas()">Comparar</button>
+      </div>
+    </div>
+    
+    <hr>
+
+    <div class="row card">
+      <div class="alert alert-primary" role="alert">
+        <h2>Comparación de Casos Totales</h2>
+      </div>
+      <div class="col-md-12">
+        <div id="grafica-1" style="width: 900px; height: 500px;"></div>
+        <div id="tabla-1"></div>
+      </div>
+    </div>
+
+    <br>
+    
+    <div class="row card">
+      <div class="alert alert-success" role="alert">
+        <h2>Comparación de Muertes Totales</h2>
+      </div>
+      <div class="col-md-12">
+        <div id="grafica-2" style="width: 900px; height: 500px;"></div>
+        <div id="tabla-2"></div>
+      </div>
+    </div>
+    
+    <br>
+
+    <div class="row card">
+      <div class="alert alert-danger" role="alert">
+        <h2>Comparación de Casos Activos</h2>
+      </div>
+      <div class="col-md-12">
+        <div id="grafica-3" style="width: 900px; height: 500px;"></div>
+        <div id="tabla-3"></div>
+      </div>
+    </div>
+    
+    <br>
+
+    <div class="row card">
+      <div class="alert alert-warning" role="alert">
+        <h2>Comparación de Pruebas Realizadas</h2>
+      </div>
+      <div class="col-md-12">
+        <div id="grafica-4" style="width: 900px; height: 500px;"></div>
+        <div id="tabla-4"></div>
+      </div>
+    </div>
+    
+    <br>
+
+    <div class="row card">
+      <div class="alert alert-info" role="alert">
+        <h2>Comparación de Casos y Muertes por Millón</h2>
+      </div>
+      <div class="col-md-12">
+        <div id="grafica-5" style="width: 900px; height: 500px;"></div>
+        <div id="tabla-5"></div>
+      </div>
+    </div>
+    
+    <br>
+
+    <div class="row card">
+      <div class="alert alert-success" role="alert">
+        <h2>Distribución de Casos Totales</h2>
+      </div>
+      <div class="col-md-12">
+        <div id="grafica-6" style="width: 900px; height: 500px;"></div>
+        <div id="tabla-6"></div>
+      </div>
+    </div>
+  </div>
+  <br><br>
+
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function() {
+        $('.js-select2').select2();
+    });
+  </script>
+</body>
+</html>
